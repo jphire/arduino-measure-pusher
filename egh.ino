@@ -3,7 +3,6 @@
 #include <Ethernet.h>
 #include <dht11.h>
 #include <Arduino.h>
-#include <DateTime.h>
 
 dht11 DHT11;
 #define DHT11PIN 2
@@ -21,12 +20,19 @@ EthernetClient client;
 long lastReadTime = 0;        // the last time you read the sensor, in ms
 long lastConnectionTime = 0;        // last time you connected to the server, in milliseconds
 boolean lastConnected = false;      // state of the connection last time through the main loop
-const int postingInterval = 10*1000;  //delay between updates to server
+const int postingInterval = 20*1000;  //delay between updates to server
 
-char queryString[84];
+// for the push-url
+char queryString[92];
+
+// set the ids for the user's data series
+char user_id[] = "11";
+char channel_id[] = "-JRCS3Zw9H7aUPGCVKk2";
+char temp_id[] = "-JRCSAE0hXqLCwCRPQ5S";
+char hum_id[] = "-JRCSEN0YW-5rc8SKwti";
+char dew_id[] = "-JRPRFJSDRzQxypL89MV";
 
 char tempString[] = "00.00";
-char humString[] = "00.00";
 char t_str[33];
 
 void setup() {
@@ -49,41 +55,52 @@ void loop() {
   long currentTime = millis();
 
   if (currentTime > lastReadTime + postingInterval) {
-
     checkSensor();
     float temperature = (float)DHT11.temperature;
     float humidity = (float)DHT11.humidity;
-    time_t t = DateTime.now();
-
-    Serial.println(ftoa(tempString,temperature,2));
-    
+    float dew_point = (float)dewPointFast(temperature, humidity);
+    Serial.print("dewpoint: ");
+    Serial.println(dew_point);
+    // if you're not connected, and the interval has passed since
+    // your last connection, then connect again and send data:
     if(!client.connected()) {
-      sendData(t, temperature, humidity); 
+      sendData(user_id, channel_id, temp_id, temperature);
+      sendData(user_id, channel_id, hum_id, humidity);
+      sendData(user_id, channel_id, dew_id, dew_point);
     }
+    // update the time of the most current reading:
     lastReadTime = millis();
   }
 
+  // if there's incoming data from the net connection.
+  // send it out the serial port.  This is for debugging
+  // purposes only:
   if (client.available()) {
     char c = client.read();
     Serial.write(c);
   }
   
+  // if there's no net connection, but there was one last time
+  // through the loop, then stop the client:
   if (!client.connected() && lastConnected) {
     Serial.println();
     Serial.println("disconnecting.");
     client.stop();
   }
 
+  // store the state of the connection for next time through
+  // the loop:
   lastConnected = client.connected();
 }
 
-byte sendData(time_t cur_time, float temperature, float humidity) {
+byte sendData(char* user, char* channel, char* series, float value) {
   if(client.connected()) client.stop();
 
   if(client.connect("exactumgh.herokuapp.com",80)) {
     Serial.println("connecting..");
  
-    sprintf(queryString,"GET /index.php?id=-JPnv3s_R0BjJ6_Lxkd7&time=%s&value=%s",itoa(cur_time,t_str,10),ftoa(tempString,temperature,2));
+    // convert the value to string
+    sprintf(queryString,"GET /index.php?user=%s&channel=%s&series=%s&value=%s",user,channel,series,ftoa(tempString,value,2));
     Serial.println(queryString);
     client.print(queryString);
     client.println(" HTTP/1.1");
@@ -118,6 +135,14 @@ void checkSensor(){
 		Serial.println("Unknown error"); 
 		break;
   }
+}
+
+double dewPointFast(double celsius, double humidity) {
+  double a = 17.271;
+  double b = 237.7;
+  double temp = (a * celsius) / (b + celsius) + log(humidity*0.01);
+  double Td = (b * temp) / (a - temp);
+  return Td;
 }
 
 char *ftoa(char *a, double f, int precision) {
