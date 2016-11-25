@@ -40,15 +40,15 @@ void setup() {
   delay(500);
 
   // Start ethernet
-  Serial.println(F("Starting ethernet..."));
-  if (Ethernet.begin(mac) == 0) {
-    Serial.println("Failed to configure Ethernet using DHCP");
-    // no point in carrying on, so do nothing forevermore:
-    // try to congifure using IP address instead of DHCP:
-    Ethernet.begin(mac, ip);
-  }
+//  Serial.println(F("Starting ethernet..."));
+//  if (Ethernet.begin(mac) == 0) {
+//    Serial.println("Failed to configure Ethernet using DHCP");
+//    // no point in carrying on, so do nothing forevermore:
+//    // try to congifure using IP address instead of DHCP:
+//    Ethernet.begin(mac, ip);
+//  }
 
-  Serial.println(Ethernet.localIP());
+//  Serial.println(Ethernet.localIP());
 }
 
 void loop() {
@@ -63,11 +63,11 @@ void loop() {
     Serial.println(dew_point);
     // if you're not connected, and the interval has passed since
     // your last connection, then connect again and send data:
-    if(!client.connected()) {
-      sendData(user_id, channel_id, temp_id, temperature);
-      sendData(user_id, channel_id, hum_id, humidity);
-      sendData(user_id, channel_id, dew_id, dew_point);
-    }
+//    if(!client.connected()) {
+//      sendData(user_id, channel_id, temp_id, temperature);
+//      sendData(user_id, channel_id, hum_id, humidity);
+//      sendData(user_id, channel_id, dew_id, dew_point);
+//    }
     // update the time of the most current reading:
     lastReadTime = millis();
   }
@@ -75,22 +75,22 @@ void loop() {
   // if there's incoming data from the net connection.
   // send it out the serial port.  This is for debugging
   // purposes only:
-  if (client.available()) {
-    char c = client.read();
-    Serial.write(c);
-  }
+//  if (client.available()) {
+//    char c = client.read();
+//    Serial.write(c);
+//  }
   
   // if there's no net connection, but there was one last time
   // through the loop, then stop the client:
-  if (!client.connected() && lastConnected) {
-    Serial.println();
-    Serial.println("disconnecting.");
-    client.stop();
-  }
+//  if (!client.connected() && lastConnected) {
+//    Serial.println();
+//    Serial.println("disconnecting.");
+//    client.stop();
+//  }
 
   // store the state of the connection for next time through
   // the loop:
-  lastConnected = client.connected();
+//  lastConnected = client.connected();
 }
 
 byte sendData(char* user, char* channel, char* series, float value) {
